@@ -32,7 +32,7 @@ def setup_logging(output_path):
     os.makedirs(output_path, exist_ok=True)
     logging.basicConfig(
         filename=os.path.join(output_path, 'eval.log'),
-        level=logging.INFO,
+        level=logging.WARNING,
         format='%(asctime)s - %(levelname)s - %(message)s'
     )
 
@@ -70,30 +70,16 @@ def initialize_rag(knowledge_base, config, model_loader_generation, model_loader
         index_pre = (index, index_titles, doc_info)
     return RAG(retriever, language_model, **config['ralm']), index_pre
 
-# Convert numpy types to standard Python types
-def convert_numpy_types(obj):
-    if isinstance(obj, np.float32):
-        return float(obj)
-    elif isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()  # Convert numpy arrays to lists
-    elif isinstance(obj, dict):
-        return {key: convert_numpy_types(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_numpy_types(item) for item in obj]
-    else:
-        return obj
     
 def mean_metrics_item(evaluation):
-    metrics = ['r1f1','r2f1','rLf1', 'similarity']
+    metrics = ['r1f1','r2f1','rLf1', 'similarity', 'mauve']
         
     # Initialize the dictionary to store computed means
     computed_means = {}
 
     # Compute means and populate the dictionary
     for metric in metrics:
-        computed_means[metric] = evaluation[metric].mean()
+        computed_means[metric] = float(evaluation[metric].mean())
 
     return computed_means
     
@@ -126,7 +112,7 @@ if __name__ == "__main__":
         test_data = test_data[['question', 'best_answer', 'correct_answers', 'incorrect_answers']]
 
     
-    knowledge_base = pd.read_pickle('./resources/articles_l3.pkl')
+    knowledge_base = pd.read_pickle('resources/articles_l3.pkl')
     all_results = {}
 
     # Evaluate all configurations
@@ -147,14 +133,14 @@ if __name__ == "__main__":
             
             if config['ralm']['icl_kb']:
                 kb = test_data
-            elif config['ralm']['10K_kb']:
+            elif config['ralm']['kb_10K']:
                 kb = pd.read_pickle('./resources/articles_l4.pkl')
             else:
                 kb = knowledge_base
             
             ralm, index_pre = initialize_rag(kb, config, model_loader_generation, model_loader_seq2seq, index_pre, same_index, first_run)
             logging.info(f"Evaluating model: {name}")
-            evaluations[name], mauve_score = ralm.evaluate(test_data)
+            evaluations[name] = ralm.evaluate(test_data)
         
             del ralm
             del model_loader_generation
@@ -169,10 +155,9 @@ if __name__ == "__main__":
                 json.dump(configs[name], f, indent=4)
         
             results = mean_metrics_item(evaluations[name])
-            results['mauve'] = mauve_score
             logging.info(results)
-            results = convert_numpy_types(results)
-            with open(f"{results_dir}/eval_results.json", "a") as outfile: 
+
+            with open(f"{results_dir}/eval_results_{name}.json", "w") as outfile: 
                 json.dump(results, outfile)   
             all_results[name] = results
         del index_pre

@@ -31,7 +31,7 @@ base_config = {
         "num_beams": 2,
         "max_new_tokens": 25,
         "batch_size": 8,
-        "10K_kb": False,
+        "kb_10K": False,
         "icl_kb": False,
         "icl_kb_incorrect": False,
         "focus": False
@@ -53,13 +53,13 @@ def generate_configurations(base_config, configs):
 
 
 configs_run1 = {
-    "Base": {
-    },
-    "HelpV2": {
-    "ralm": {
-        "system_prompt": "You are an accurate and reliable question-answering bot. Please provide a precise and correct response to the question following"
-        }
-    },
+    # "Base": {
+    # },
+    # "HelpV2": {
+    # "ralm": {
+    #     "system_prompt": "You are an accurate and reliable question-answering bot. Please provide a precise and correct response to the question following"
+    #     }
+    # },
     "Instruct45B": {
     "generation_model_name": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "seq2seq_model_name": "google/flan-t5-small",

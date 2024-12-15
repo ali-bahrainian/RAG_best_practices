@@ -39,7 +39,7 @@ class RAG:
         system_prompt (str): A predefined prompt to prepend to each input.
     """
 
-    def __init__(self, retriever, language_model, system_prompt, repeat_system_prompt, top_k_docs, expand_query, top_k_titles, stride, query_len, do_sample, temperature, top_p, num_beams, max_new_tokens, batch_size, icl_kb, icl_kb_incorrect, focus):
+    def __init__(self, retriever, language_model, system_prompt, repeat_system_prompt, top_k_docs, expand_query, top_k_titles, stride, query_len, do_sample, temperature, top_p, num_beams, max_new_tokens, batch_size, kb_10K, icl_kb, icl_kb_incorrect, focus):
         self.retriever = retriever
         self.language_model = language_model
 
@@ -61,6 +61,7 @@ class RAG:
         self.query_len = query_len
         self.max_new_tokens = max_new_tokens
         self.batch_size = batch_size
+        self.Kb_10K = kb_10K
         self.icl_kb = icl_kb
         self.icl_kb_incorrect = icl_kb_incorrect
         self.focus= focus
@@ -106,10 +107,10 @@ class RAG:
 
         # Evaluate generation
         results_generation = self._evaluate_generation(test_batches_generation)
-        mauve_scores = self._compute_evaluation_mauve(self.retriever.embedding_model, test_data)
-        
+        results_df = self._compute_evaluation_metrics(test_data, results_generation)
+        results_df = self._compute_evaluation_mauve(self.retriever.embedding_model, results_df)
         # Combine and format results
-        return self._compute_evaluation_metrics(test_data, results_generation), mauve_scores
+        return results_df
 
 
     def _evaluate_generation(self, test_batches):
@@ -244,8 +245,7 @@ class RAG:
         rLf1_scores_dict = {}
         similarities_dict = {}
 
-        answer_type = 'correct'
-        answers = result[f'{answer_type}_answers']
+        answers = result['correct_answers']
         answers = answers + [result['best_answer']]*2
 
         # Calculate F1 scores and similarities
@@ -255,10 +255,10 @@ class RAG:
         similarities = self._calculate_cosine_similarity([result['generated_response']], answers)
 
         # Compute the gaussian weighted mean of the scores
-        r1f1_scores_dict[f'r1f1_{answer_type}'] = np.mean(r1f1_scores)
-        r2f1_scores_dict[f'r2f1_{answer_type}'] = np.mean(r2f1_scores)
-        rLf1_scores_dict[f'rLf1_{answer_type}'] = np.mean(rLf1_scores)
-        similarities_dict[f'similarity_{answer_type}'] = np.mean(similarities)
+        r1f1_scores_dict[f'r1f1'] = np.mean(r1f1_scores)
+        r2f1_scores_dict[f'r2f1'] = np.mean(r2f1_scores)
+        rLf1_scores_dict[f'rLf1'] = np.mean(rLf1_scores)
+        similarities_dict[f'similarity'] = np.mean(similarities)
 
         metrics.update(r1f1_scores_dict)
         metrics.update(r2f1_scores_dict)
@@ -314,7 +314,7 @@ class RAG:
 
         return similarities
 
-    def _compute_evaluation_mauve(self, embedding_model, test_data):
+    def _compute_evaluation_mauve(self, embedding_model, results_df):
         """
         Formats and combines evaluation results into a single DataFrame.
 
@@ -326,14 +326,15 @@ class RAG:
         """
         answers  = []
         generated_answers = []
-        for i in range(len(test_data)):
-            answer = test_data.loc[i, "correct_answers"]
+        for i in range(len(results_df)):
+            answer = results_df.loc[i, "correct_answers"]
             answers += answer
-            generated_answers += [str(test_data.loc[i,'generated_response'])]*len(answer)
+            answers = answers + [results_df.loc[i, 'best_answer']]*2
+            generated_answers += [str(results_df.loc[i,'generated_response'])]*len(answer)
         
-        mauve_score = self._calculate_mauve(embedding_model, generated_answers, answers)
-
-        return mauve_score
+        mauve_scores = self._calculate_mauve(embedding_model, generated_answers, answers)
+        results_df['mauve'] = mauve_scores
+        return results_df
     
     def _calculate_mauve(self, embedding_model, generated_answers, answers):
         """
@@ -351,7 +352,7 @@ class RAG:
         q_features = embedding_model.encode(answers)
         score = mauve.compute_mauve(p_features=p_features, q_features=q_features)
 
-        return score
+        return score.mauve
 
     def _query_idx(self, query):
         return self.test_data.index[self.test_data['question'] == query].tolist()[0]
