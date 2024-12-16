@@ -79,7 +79,6 @@ base_config = {
 4. **Download Knowledge Sources**:
 
     Download the necessary knowledge base files from the provided [Google Drive link](https://drive.google.com/drive/folders/1_-2PHI0-Wz1VjnW5Yvy5Ne9C7mMWk1nf?usp=drive_link).
-    
     Unzip the downloaded files into the `resources/` directory.
 ---
 
