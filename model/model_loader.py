@@ -7,7 +7,7 @@ from transformers import AutoConfig
 from src.build_model import OffloadConfig, QuantConfig, build_model
 from hqq.core.quantize import BaseQuantizeConfig
 
-HF_TOKEN = ''
+HF_TOKEN = '' # Token for Hugging Face API access
 
 class ModelLoader:
     """
