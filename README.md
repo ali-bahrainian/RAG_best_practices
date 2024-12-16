@@ -1,5 +1,7 @@
 # RAG Best Practices
 
+This repository is the official implementation of the paper [Enhancing Retrieval-Augmented Generation: A Study of Best Practices](https://github.com/ali-bahrainian/RAG_best_practices)
+
 ## Overview
 This repository implements a **Retrieval-Augmented Generation (RAG)** system to assess the impact of various RAG components and configurations individually. The framework expands user queries, retrieves relevant contexts, and generates responces using a Large Language Model (LLM).
 
@@ -74,26 +76,35 @@ base_config = {
     ```bash
     pip install -r requirements.txt
     ```
+4. **Download the knowledge source**
+Download the necessary knowledge base files from the provided [Google Drive link](https://drive.google.com/drive/folders/1_-2PHI0-Wz1VjnW5Yvy5Ne9C7mMWk1nf?usp=drive_link).
+Unzip the downloaded files into the `resources/` directory.
 ---
 
 ## Project Structure
 Your final directory structure should look like this:
 ```
 RAG_best_practices/ 
+│
 │ ├── mixtral-offloading/                                # Mixtral model offloading library
 │ ├── Mixtral-8x7B-Instruct-v0.1-offloading-demo/        # Mixtral-8x7B model offloading library
-│── model/                       # Core RAG implementation 
+│
+├── model/                       # Core RAG implementation 
 │ ├── index_builder.py           # Builds document index 
-│ ├── language_model.py          # Query expansion logic 
+│ ├── language_model.py          # Setting LLM to generate text
 │ ├── model_loader.py            # Loads Mixtral LLM 
 │ ├── rag.py                     # Main RAG pipeline 
 │ ├── retriever.py               # Retrieves documents 
 │ ├── config.py                  # Configuration setup 
 │ ├── evaluation.py              # Runs the full RAG pipeline 
-│ ├── overview.png               # Image explaining the RAG pipeline 
 │ ├── requirements.txt           # Python dependencies 
+│
+├── resources/                   # Knowledge base
+│ ├── articles_l3.pkl            # Knowledge base file (level 3)
+│ ├── articles_l4.pkl            # Knowledge base file (level 4)
 └── README.md 
 ```
+
 ---
 
 ## Run RAG System 

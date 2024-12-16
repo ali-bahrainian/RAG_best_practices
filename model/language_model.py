@@ -3,7 +3,7 @@ import torch
 class LanguageModel:
     """
     Encapsulates a transformer-based language model for text generation. This class provides functionalities
-    to generate text based on input prompts and to calculate perplexity for given texts.
+    to generate text based on input prompts.
 
     Attributes:
         model (transformers.PreTrainedModel): The transformer-based language model for text generation.
