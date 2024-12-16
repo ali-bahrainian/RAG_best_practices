@@ -8,7 +8,9 @@ The RAG framework combines:
 2. **Retrieval Module**: Retrieves similar documents or sentences.
 3. **Generative LLM**: Generates the final answer based on the retrieved contexts.
 
-![RAG Framework Overview](rag-diagram.png)
+<p align="center">
+  <img src="rag-diagram.png" alt="RAG Framework Overview" width="600">
+</p>
 
 ---
 ## Configuration
