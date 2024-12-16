@@ -78,7 +78,9 @@ base_config = {
 Your final directory structure should look like this:
 ```
 RAG_best_practices/ 
-│── model/                       # Core RAG implementation 
+│ ├── mixtral-offloading/                                # Mixtral model offloading library
+│ ├── Mixtral-8x7B-Instruct-v0.1-offloading-demo/        # Mixtral-8x7B model offloading library
+│── model/                                               # Core RAG implementation 
 │ ├── index_builder.py           # Builds document index 
 │ ├── language_model.py          # Query expansion logic 
 │ ├── model_loader.py            # Loads Mixtral LLM 
