@@ -9,7 +9,7 @@ The RAG framework combines:
 3. **Generative LLM**: Generates the final answer based on the retrieved contexts.
 
 <p align="center">
-  <img src="rag-diagram.png" alt="RAG Framework Overview" width="600">
+  <img src="rag-diagram.png" alt="RAG Framework Overview" width="800">
 </p>
 
 ---
