@@ -4,27 +4,11 @@
 This repository implements a **Retrieval-Augmented Generation (RAG)** pipeline. The framework expands user queries, retrieves relevant contexts, and generates responces using a Large Language Model (LLM).
 
 The RAG framework combines:
-1. **Query Expansion Module**: Expands the query using a language model.
-2. **Retrieval Module**: Fetches similar documents.
+1. **Query Expansion Module**: Expands the query using a language model (LM).
+2. **Retrieval Module**: Retrieves similar documents or sentences.
 3. **Generative LLM**: Generates the final answer based on the retrieved contexts.
 
 ![RAG Framework Overview](rag-diagram.png)
-
----
-
-## Project Structure
-RAG_best_practices/ 
-│── model/                       # Core RAG implementation 
-│ ├── index_builder.py           # Builds document index 
-│ ├── language_model.py          # Query expansion logic 
-│ ├── model_loader.py            # Loads Mixtral LLM 
-│ ├── rag.py                     # Main RAG pipeline 
-│ ├── retriever.py               # Retrieves documents 
-│ ├── config.py                  # Configuration setup 
-│ ├── evaluation.py              # Runs the full RAG pipeline 
-│ ├── overview.png               # Image explaining the RAG pipeline 
-│ ├── requirements.txt           # Python dependencies 
-└── README.md 
 
 ---
 ## Configuration
@@ -74,7 +58,6 @@ base_config = {
 
 ```
 
-
 ---
 ## Installation
 1. **Clone mixtral-offloading repository**:
@@ -89,12 +72,33 @@ base_config = {
     ```bash
     pip install -r requirements.txt
     ```
+---
+
+## Project Structure
+Your final directory structure should look like this:
+```
+RAG_best_practices/ 
+│── model/                       # Core RAG implementation 
+│ ├── index_builder.py           # Builds document index 
+│ ├── language_model.py          # Query expansion logic 
+│ ├── model_loader.py            # Loads Mixtral LLM 
+│ ├── rag.py                     # Main RAG pipeline 
+│ ├── retriever.py               # Retrieves documents 
+│ ├── config.py                  # Configuration setup 
+│ ├── evaluation.py              # Runs the full RAG pipeline 
+│ ├── overview.png               # Image explaining the RAG pipeline 
+│ ├── requirements.txt           # Python dependencies 
+└── README.md 
+```
+---
 
 ## Run RAG System 
 To evaluate our RAG system with different configurations, simply run:
-    ```bash
-    python resources/evaluation.py
-    ```
+
+```bash
+python resources/evaluation.py
+```
+---
 
 ## Citation
 If you find our paper or code helpful, please cite our paper:
