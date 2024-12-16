@@ -1,7 +1,7 @@
 # RAG Best Practices
 
 ## Overview
-This repository implements a **Retrieval-Augmented Generation (RAG)** pipeline. The framework expands user queries, retrieves relevant contexts, and generates responces using a Large Language Model (LLM).
+This repository implements a **Retrieval-Augmented Generation (RAG)** system to assess the impact of various RAG components and configurations individually. The framework expands user queries, retrieves relevant contexts, and generates responces using a Large Language Model (LLM).
 
 The RAG framework combines:
 1. **Query Expansion Module**: Expands the query using a language model (LM).
@@ -98,7 +98,7 @@ RAG_best_practices/
 To evaluate our RAG system with different configurations, simply run:
 
 ```bash
-python resources/evaluation.py
+python evaluation.py
 ```
 ---
 
