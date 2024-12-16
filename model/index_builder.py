@@ -1,6 +1,5 @@
 import faiss
 from gensim.corpora import Dictionary
-from gensim.models import LdaModel
 from gensim.parsing.preprocessing import STOPWORDS
 from gensim.utils import simple_preprocess
 import numpy as np
@@ -18,46 +17,35 @@ class IndexBuilder:
     Args:
         documents (list of str): List of documents to index.
         embedding_model_name (str): Name of the sentence transformer model to use for document embedding.
-        metadata (list of dict, optional): Metadata associated with each document.
         # TODO
 
     Attributes:
         documents (list of str): Original list of documents.
         titles (list of str): Original list of titles.
         embedding_model (SentenceTransformer): Sentence transformer model used for embedding documents.
-        metadata (list of dict, optional): Metadata associated with each document.
         index (faiss.Index): FAISS index for efficiently searching documents based on their embeddings.
-        doc_info (pd.DataFrame): DataFrame containing information about documents, including text, embedding, and topic distribution.
-        lda_model (gensim.models.ldamodel.LdaModel): LDA model for identifying topics in documents.
-        dictionary (gensim.corpora.Dictionary): Gensim dictionary for converting text to vectors.
+        doc_info (pd.DataFrame): DataFrame containing information about documents, including text and embeddings.
         corpus (list of gensim.matutils.SparseVector): Gensim corpus representing documents as bag-of-words vectors.
     """
 
-    def __init__(self, documents_df, embedding_model_name, expand_query, metadata_cols, tokenizer_model_name, chunk_size, overlap, num_topics, passes, icl_kb, multi_lingo, mmlu_kb):
+    def __init__(self, documents_df, embedding_model_name, expand_query, tokenizer_model_name, chunk_size, overlap, passes, icl_kb, multi_lingo):
         """
         Initializes the IndexBuilder class with necessary components.
         """
         self.expand_query = expand_query
         self.icl_kb = icl_kb
         self.multi_lingo = multi_lingo
-        self.mmlu_kb = mmlu_kb
 
-        if not self.icl_kb:
-            if not self.mmlu_kb:
-                self.documents = documents_df['text_en'].tolist()
-                self.documents_de = documents_df['text_de'].tolist()
-                self.documents_fr = documents_df['text_fr'].tolist()
-                self.titles = documents_df['title_en'].tolist()
-                self.metadata = documents_df[metadata_cols].to_dict(orient='records') if metadata_cols else None
-            else:
-                self.documents = documents_df['text_en'].tolist()
-                self.metadata = None
-        else:
+        if self.icl_kb:
             self.documents = documents_df['question'].tolist()
             self.titles = None
-            self.metadata = None
             self.best_answers = documents_df['best_answer'].tolist()
             self.incorrect_answers = documents_df['incorrect_answers'].tolist()
+        else:
+            self.documents = documents_df['text_en'].tolist()
+            self.documents_de = documents_df['text_de'].tolist()
+            self.documents_fr = documents_df['text_fr'].tolist()
+            self.titles = documents_df['title_en'].tolist()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.embedding_model = SentenceTransformer(embedding_model_name).to(self.device)
@@ -68,26 +56,22 @@ class IndexBuilder:
         else:
             self.tokenizer = None
 
-        self.chunk_size, self.overlap, self.num_topics, self.passes = chunk_size, overlap, num_topics, passes
+        self.chunk_size, self.overlap, self.passes = chunk_size, overlap, passes
 
     def initialize_components(self):
         """
         The primary method to be used externally for activating the index building mechanism.
         It orchestrates the creation of a searchable index and the associated DataFrame containing
-        embeddings, text, metadata, and topic distributions.
+        embeddings and text
 
-        It follows these key steps:
-        1. Build an FAISS index using the document embeddings, for efficient similarity search.
-        2. Train an LDA model to capture topic distributions within the documents and
-           update the chunk information with the identified topic distributions
+        An FAISS index is build for the document embeddings, for efficient similarity search.
 
         The resulting index and DataFrame are aligned such that each embedding in the index corresponds
-        to the associated text, metadata, and topic distribution.
+        to the associated text
 
         Args:
             chunk_size (int): Size of each chunk in tokens.
             overlap (int): Overlap between consecutive chunks in tokens.
-            num_topics (int): Number of topics for the LDA model.
             passes (int): Number of training passes over the corpus.
 
         Returns:
@@ -97,28 +81,24 @@ class IndexBuilder:
 
         self.doc_info = None
         self.index = self._build_index()
-        self.title_index = None   # self._build_title_index() if not self.icl_kb else None  # None
+        self.title_index = None   
         if self.expand_query:
-            self.title_index = self._build_title_index() if not self.icl_kb else None  # None
-        if not self.icl_kb:
-            self._train_lda_model(self.num_topics, self.passes)
-            self._update_doc_with_topics()
+            self.title_index = self._build_title_index() if not self.icl_kb else None  
 
         return self.index, self.title_index, self.doc_info
 
     def _check_chunk_size(self, tolerance_ratio=0.1):
         """
-        Validates if the chunk size is within the model's maximum input size, considering metadata.
+        Validates if the chunk size is within the model's maximum input size.
 
         Args:
             chunk_size (int): Size of each chunk in tokens.
-            tolerance_ratio (float): Ratio of (chunk + metadata) length to max input size.
+            tolerance_ratio (float): Ratio of chunk length to max input size.
         """
-        # Estimated length considering metadata
-        total_length = self.chunk_size + (len(self._format_metadata(self.metadata[0])) if self.metadata else 0)
+        total_length = self.chunk_size 
 
         if total_length > self.embedding_model.get_max_seq_length() * (1 - tolerance_ratio):
-            raise ValueError(f"Combined length of chunk and metadata exceeds the allowed maximum.")
+            raise ValueError(f"Combined length of chunk exceeds the allowed maximum.")
 
     def _build_title_index(self):
         """
@@ -159,7 +139,6 @@ class IndexBuilder:
         The process involves:
         1. Preparing chunks of documents:
           - Splits each document into overlapping chunks based on `chunk_size` and `overlap`.
-          - If available, metadata for each document is prepended to each chunk.
         2. Encoding these chunks/documents into embeddings using the Sentence Transformer.
 
         Args:
@@ -178,7 +157,7 @@ class IndexBuilder:
 
     def _prepare_docs(self):
         """
-        Splits each document into overlapping chunks, appending metadata and
+        Splits each document into overlapping chunks and
         creates dictionary for DataFrame associated with index.
 
         Args:
@@ -191,28 +170,22 @@ class IndexBuilder:
         doc_info = []
 
         for org_doc_id in range(len(self.documents)):
-            if self.mmlu_kb:
-                doc_en = self.documents[org_doc_id]
-            else:  
+
+            if self.multi_lingo:
                 doc_en = self.documents[org_doc_id]
                 doc_fr = self.documents_fr[org_doc_id]
                 doc_de = self.documents_de[org_doc_id]
-            if not self.multi_lingo:
-                doc = doc_en
-            else:
                 doc = np.random.choice([doc_en, doc_fr, doc_de])
-
-            if doc is None:
-                doc = doc_en
+            else:
+                doc = self.documents[org_doc_id]
             
             # Breaks document into chunks but we will still call them documents
             docs = self._create_chunks(doc)
-            metadata = self.metadata[org_doc_id] if self.metadata else None
 
-            # Prepend same document metadata to its chunks and store document/chunk details
+            # Prepend same document to its chunks and store document/chunk details
             for doc in docs:
-                text = f"{self._format_metadata(metadata)}{doc}" if metadata else doc
-                doc_dict = {"text": text, "metadata": metadata, "org_doc_id": org_doc_id, "doc": doc}
+                text = doc
+                doc_dict = {"text": text, "org_doc_id": org_doc_id, "doc": doc}
                 if self.icl_kb:
                     doc_dict['correct_answer'] = self.best_answers[org_doc_id]
                     doc_dict['incorrect_answer'] = self.incorrect_answers[org_doc_id][0]
@@ -243,31 +216,6 @@ class IndexBuilder:
 
         return chunks
 
-    def _format_metadata(self, metadata):
-        """
-        Formats metadata for inclusion in docs/chunks.
-
-        Args:
-            metadata (dict): Metadata for a document.
-
-        Returns:
-            str: Formatted metadata as a string.
-        """
-        if not metadata:
-            return ""
-        return ", ".join([value if value is not None else "" for value in metadata.values()]) + ": "
-
-    def _train_lda_model(self, num_topics, passes):
-        """
-        Trains an LDA model on the corpus to uncover latent topics within the documents
-
-        Args:
-            num_topics (int): Number of topics for the LDA model.
-            passes (int): Number of training passes over the corpus.
-        """
-        self._build_corpus()
-        self.lda_model = LdaModel(corpus=self.corpus, id2word=self.dictionary, num_topics=num_topics, passes=passes)
-
     def _build_corpus(self):
         """
         Builds a Gensim dictionary and corpus from the documents.
@@ -287,27 +235,3 @@ class IndexBuilder:
             List[str]: List of tokens after preprocessing.
         """
         return [token for token in simple_preprocess(text) if token not in STOPWORDS]
-
-    def _update_doc_with_topics(self):
-        """
-        Updates document (chunks) info with topic distributions.
-        """
-        topic_distributions = []
-        for _, doc in self.doc_info.iterrows():
-            bow = self.dictionary.doc2bow(self._preprocess_text(doc['doc']))
-            topic_distribution = self._get_topic_distribution(bow)
-            topic_distributions.append(topic_distribution)
-
-        self.doc_info['topic_distribution'] = topic_distributions
-
-    def _get_topic_distribution(self, doc_bow):
-        """
-        Gets the topic distribution for a document.
-
-        Args:
-            doc_bow: Bag-of-words representation of a documene.
-
-        Returns:
-            List[float]: Normalized topic distribution for the documene.
-        """
-        return [prob for _, prob in self.lda_model.get_document_topics(doc_bow, minimum_probability=1e-3)]

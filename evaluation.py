@@ -3,7 +3,6 @@ import json
 import os
 import argparse
 from datetime import datetime
-import logging
 import random
 
 import pandas as pd
@@ -27,15 +26,6 @@ def parse_args():
     parser.add_argument('--seed', default=42, type=int, help='Random seed')
     return parser.parse_args()
 
-# Initialize logging
-def setup_logging(output_path):
-    os.makedirs(output_path, exist_ok=True)
-    logging.basicConfig(
-        filename=os.path.join(output_path, 'eval.log'),
-        level=logging.WARNING,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
-
 # Set random seed
 def set_random_seed(seed):
     random.seed(seed)  # Python's built-in random module
@@ -56,6 +46,8 @@ def initialize_index_builder(knowledge_base, config):
 # Initialize RAG model
 def initialize_rag(knowledge_base, config, model_loader_generation, model_loader_seq2seq, index_pre, same_index, first_run):
     build_index = not same_index or first_run
+
+    # Initialize index builder if needed
     if build_index:
         index, index_titles, doc_info = initialize_index_builder(knowledge_base, config)
     else:
@@ -86,7 +78,6 @@ def mean_metrics_item(evaluation):
 if __name__ == "__main__":
 
     args = parse_args()
-    setup_logging(args.output_dir) 
     set_random_seed(args.seed)
 
     if args.dataset == 'truthfulqa':
@@ -128,9 +119,11 @@ if __name__ == "__main__":
         
         evaluations = {}
         for name, config in configs.items():
+            # Initialize model loaders
             model_loader_generation = ModelLoader(config['generation_model_name'], 'causal', quant_type='4bit')
             model_loader_seq2seq = ModelLoader(config['seq2seq_model_name'], 'seq2seq', quant_type='4bit')
             
+            # Load knowledge base
             if config['ralm']['icl_kb']:
                 kb = test_data
             elif config['ralm']['kb_10K']:
@@ -139,7 +132,7 @@ if __name__ == "__main__":
                 kb = knowledge_base
             
             ralm, index_pre = initialize_rag(kb, config, model_loader_generation, model_loader_seq2seq, index_pre, same_index, first_run)
-            logging.info(f"Evaluating model: {name}")
+            print(f"Evaluating model: {name}")
             evaluations[name] = ralm.evaluate(test_data)
         
             del ralm
@@ -155,7 +148,6 @@ if __name__ == "__main__":
                 json.dump(configs[name], f, indent=4)
         
             results = mean_metrics_item(evaluations[name])
-            logging.info(results)
 
             with open(f"{results_dir}/eval_results_{name}.json", "w") as outfile: 
                 json.dump(results, outfile)   

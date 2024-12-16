@@ -2,7 +2,6 @@ from faiss import IDSelectorArray, SearchParameters
 import numpy as np
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from scipy.spatial.distance import jensenshannon
 import torch
 
 import spacy
@@ -11,14 +10,10 @@ import faiss
 # Load the English model
 nlp = spacy.load("en_core_web_sm")
 
-def softmax_(x):
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=-1, keepdims=True)
-
 class Retriever:
     """
     Handles the retrieval of relevant documents from a pre-built FAISS index.
-    Enables querying with sentence transformers embeddings & diverse retrieval using Maximal Marginal Relevance.
+    Enables querying with sentence transformers embeddings.
 
     Attributes:
         index (faiss.Index): FAISS index for fast similarity search.
@@ -45,6 +40,7 @@ class Retriever:
 
         self.model_seq2seq = model_loader_seq2seq.model
         self.tokenizer_seq2seq = model_loader_seq2seq.tokenizer
+        # Define text-query pairs for query expansion
         self.text_query_pairs = [
             {"text": "Mitochondria play a crucial role in cellular respiration and energy production within human cells.", "query": "Cell Biology, Mitochondria, Energy Metabolism"},
             {"text": "The Treaty of Versailles had significant repercussions that contributed to the onset of World War II.", "query": "World History, Treaty of Versailles, World War II"},
@@ -78,7 +74,6 @@ class Retriever:
         The process involves:
         1. Preparing chunks of documents:
           - Splits each document into overlapping chunks based on `chunk_size` and `overlap`.
-          - If available, metadata for each document is prepended to each chunk.
         2. Encoding these chunks/documents into embeddings using the Sentence Transformer.
 
         Args:
@@ -109,9 +104,8 @@ class Retriever:
             
             doc = nlp(document)
             sents = [sent.text for sent in doc.sents]
-            # print("length of sents: ", len(sents))
             
-            # Prepend same document metadata to its chunks and store document/chunk details
+            # Prepend same document to its chunks and store document/chunk details
             for sent in sents:
                 sent_dict = {"text": sent, "org_sent_id": sent_id}
                 sent_info.append(sent_dict)
@@ -121,7 +115,6 @@ class Retriever:
     def retrieve(self, query_batch, k, expand_query, k_titles, icl_kb_idx_batch=None, focus=None):
         """
         Retrieves the top-k most similar documents for each query in a batch of queries.
-        Optionally applies Maximal Marginal Relevance for diverse retrieval.
 
         Args:
             query_batch (list of str): List of query strings.
@@ -135,7 +128,7 @@ class Retriever:
             return [[] for _ in query_batch]
 
         if expand_query:
-            # TODO put into separate function
+            # Expand the query using a seq2seq model
             eq_prompt_batch_str = []
             for query in query_batch:
                 examples = self.text_query_pairs.copy()
@@ -146,19 +139,22 @@ class Retriever:
             eq_prompt_batch_enc = self.tokenizer_seq2seq(eq_prompt_batch_str, return_tensors='pt', padding=True).to(self.device)
             eq_batch_enc = self.model_seq2seq.generate(**eq_prompt_batch_enc, max_length=25, num_return_sequences=1)
             eq_batch = self.tokenizer_seq2seq.batch_decode(eq_batch_enc, skip_special_tokens=True)
-            eq_batch = [eq.split(", ") for eq in eq_batch]  # TODO what if expanded queries are not in corcect format for this splitting -> make more general
+            eq_batch = [eq.split(", ") for eq in eq_batch] # Split the expanded queries
 
+            # Encode the expanded queries and search the index for similar titles
             eq_batch_indexed = [(eq, i) for i, eqs in enumerate(eq_batch) for eq in eqs]
             eq_batch_flat = [eq for eq, _ in eq_batch_indexed]
             eq_embeddings = self.embedding_model.encode(eq_batch_flat, show_progress_bar=False)
             _, indices_eq = self.index_titles.search(np.array(eq_embeddings), k_titles)
 
-            # Reconstruct the original 2D array
+            # Retrieve the indices of the documents associated with the similar titles
             indices_eq_batch = [[] for _ in range(len(query_batch))]
             for ids, (_, i) in zip(indices_eq, eq_batch_indexed):
                 indices_eq_batch[i].append(self.doc_info[self.doc_info['org_doc_id'].isin(ids)].index.tolist())
         else:
+            # If not expanding the query, set the indices to an empty list
             if icl_kb_idx_batch:
+                # Remove the correct answer from the retrieved documents
                 all_ids_batch = [list(range(self.index.ntotal)) for _ in range(len(query_batch))]
                 for all_ids, icl_kb_idx in zip(all_ids_batch, icl_kb_idx_batch):
                     all_ids.remove(icl_kb_idx)
@@ -194,6 +190,7 @@ class Retriever:
 
             icl_kb = icl_kb_idx_batch!=None
             if focus:
+                # Retrieve the most relevant sentences from the retrieved documents
                 results_batch.append([self._create_result(idx, sim, icl_kb, focus) for idx, sim in zip(indices[:focus], similarities)])
             else:
                 results_batch.append([self._create_result(idx, sim, icl_kb, focus) for idx, sim in zip(indices[:k], similarities)])
@@ -213,6 +210,7 @@ class Retriever:
             dict: Dictionary containing the document text and additional information.
         """
         if focus: 
+            # Retrieve the most relevant sentences from the retrieved documents
             sent = self.sent_info.iloc[idx]
             result_dict = {
             "text": sent["text"],
@@ -221,15 +219,15 @@ class Retriever:
         }
         else:
             doc = self.doc_info.iloc[idx]
-            # Format and return the result as a dictionary
+            # Create the result dictionary
             result_dict = {
                 "text": doc["text"],
-                "metadata": doc["metadata"],
                 "doc_id": doc["org_doc_id"],
                 "score": score
             }
 
             if icl_kb:
+                # Include the correct and incorrect answers for ICL KB
                 result_dict['correct_answer'] = doc["correct_answer"]
                 result_dict['incorrect_answer'] = doc["incorrect_answer"]
 

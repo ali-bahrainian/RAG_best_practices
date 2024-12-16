@@ -6,26 +6,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 import mauve
 from tqdm import tqdm
 
-def softmax_(x):
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=-1, keepdims=True)
-
-def robust_mean(data, trim_factor=0.05):
-    """Calculate a weighted mean where weights are lower for points further from the median."""
-    if len(data) == 0:
-        return np.nan
-    if len(np.unique(data)) == 1:
-        return data[0]
-    if len(np.unique(data)) == 2:
-        return np.mean(data)
-
-    sorted_data = np.sort(data)
-    median = np.median(sorted_data)
-    distances = np.abs(sorted_data - median)
-    max_distance = np.quantile(distances, 1 - trim_factor)
-    weights = np.clip(1 - distances / max_distance, 0, 1)
-    return np.sum(sorted_data * weights) / np.sum(weights)
-
 class RAG:
     """
     Integrates a retriever and a language model to generate responses based on retrieved information.
@@ -68,6 +48,7 @@ class RAG:
 
     def _prompt_template(self, query, docs_text, docs_correct_answer, docs_incorrect_answer):
         if docs_text:
+            # Format the prompt based on the type of knowledge base
             if not self.icl_kb:
                 system_prompt = self.system_prompt + " considering these information\n" if self.system_prompt else ""
                 repeat_prompt = self.system_prompt + "\n" if self.repeat_system_prompt else ""
@@ -90,14 +71,13 @@ class RAG:
     def evaluate(self, test_data):
         """
         Evaluates the RAG instance using the provided test data. It processes the data in batches, computing metrics
-        such as perplexity and generating responses.
 
         Args:
             test_data (DataFrame): DataFrame containing query and expected response pairs.
             batch_size (int): Size of the batch for processing.
 
         Returns:
-            DataFrame: DataFrame containing test data, generated responses, perplexities, and evaluation scores.
+            DataFrame: DataFrame containing test data, generated responses, and evaluation scores.
         """
         self.test_data = test_data
 
@@ -148,34 +128,36 @@ class RAG:
             list[str]: Generated responses.
         """
         stride = self.stride if self.stride > 0 else self.max_new_tokens
-        # stride = self.stride if self.stride > 0 else self.max_length
 
         retrieval_kwargs = self.retrieval_kwargs
         if self.icl_kb:
             retrieval_kwargs['icl_kb_idx_batch'] = [self._query_idx(query) for query in query_batch]
+        # Retrieve documents
         docs_batch = self.retriever.retrieve(query_batch, **retrieval_kwargs)
-        #docs_str_batch = [[doc['text'] for doc in docs] for docs in docs_batch]
         context_batch = self._format_context(query_batch, docs_batch)
 
         responses_enc = [[] for _ in query_batch]
 
         done_batch = [False for _ in query_batch]
+        # Generate responses based on the documents retrieved from each stride 
         for i in range(0, self.max_new_tokens, stride):
+            # Expand the query with the generated response from the previous stride
             query_reponse_batch = [(q+" "+self.language_model.tokenizer.decode(r))[-self.query_len:] for q, r in zip(query_batch, responses_enc)]
+            # Retrieve documents based on the expanded query
             docs_batch = self.retriever.retrieve(query_reponse_batch, **retrieval_kwargs)
-            #docs_str_batch = [[doc['text'] for doc in docs] for docs in docs_batch]
-
+            # Format context
             _context_batch = self._format_context(query_batch, docs_batch)
             running_context_batch = [c+self.language_model.tokenizer.decode(r) for c, r in zip(_context_batch, responses_enc)]
-
+            # Generate responses
             new_responses_str, _done_batch = self.language_model.generate(running_context_batch, self.do_sample, self.temperature, self.top_p, self.num_beams, max_new_tokens=stride)
-            # new_responses_str, _done_batch = self.language_model.generate_length(running_context_batch, self.do_sample, self.temperature, self.top_p, self.num_beams, max_length=stride)
+           
             done_batch = [bool(d + _d) for d, _d in zip(done_batch, _done_batch)]
 
             for idx, (done, new_response_str, running_context, response_enc) in enumerate(zip(done_batch, new_responses_str, running_context_batch, responses_enc)):
                 if not done:
                     new_response_str = new_response_str[len(running_context):]
                     new_response_enc = self.language_model.tokenizer.encode(new_response_str, add_special_tokens=False)
+                    # Append the new response to the previous response
                     responses_enc[idx] = response_enc + new_response_enc
 
 
@@ -266,13 +248,13 @@ class RAG:
         metrics.update(similarities_dict)
         return metrics
 
-    def _calculate_f1_score(self, generated_answers, gold_answers, n='1'):
+    def _calculate_f1_score(self, generated_answers, reference_answers, n='1'):
         """
         Calculates the F1 score based on the overlap between two lists of strings.
 
         Args:
             generated_answers (list[str]): Generated answers.
-            gold_answers (list[str]): Gold standard answers.
+            reference_answers (list[str]): Reference answers.
             n (string): N-gram length for ROUGE-N calculation. Default is 1 (ROUGE-1).
 
         Returns:
@@ -283,33 +265,33 @@ class RAG:
         # Calculate f1 score for each pair
         scores = []
         for generated in generated_answers:
-            for gold in gold_answers:
-                score = scorer.score(gold, generated)
+            for ref in reference_answers:
+                score = scorer.score(ref, generated)
                 rouge_n_f1 = score[f'rouge{n}'].fmeasure
                 scores.append(rouge_n_f1)
 
         return scores
 
-    def _calculate_cosine_similarity(self, generated_answers, gold_answers):
+    def _calculate_cosine_similarity(self, generated_answers, reference_answers):
         """
         Calculates cosine similarity between the generated and gold answers.
 
         Args:
             generated_answers (list[str]): Generated answers.
-            gold_answers (list[str]): Gold standard answers.
+            reference_answers (list[str]): Gold standard answers.
 
         Returns:
             float: Cosine similarity between the answers.
         """
          # Generate embeddings
         generated_embeddings = self.retriever.embedding_model.encode(generated_answers)
-        gold_embeddings = self.retriever.embedding_model.encode(gold_answers)
+        ref_embeddings = self.retriever.embedding_model.encode(reference_answers)
 
         # Calculate cosine similarity for each pair
         similarities = []
         for gen_emb in generated_embeddings:
-            for gold_emb in gold_embeddings:
-                similarity = cosine_similarity([gen_emb], [gold_emb])[0][0]
+            for ref_emb in ref_embeddings:
+                similarity = cosine_similarity([gen_emb], [ref_emb])[0][0]
                 similarities.append(similarity)
 
         return similarities
@@ -336,20 +318,20 @@ class RAG:
         results_df['mauve'] = mauve_scores
         return results_df
     
-    def _calculate_mauve(self, embedding_model, generated_answers, answers):
+    def _calculate_mauve(self, embedding_model, generated_answers, reference_answers):
         """
         Calculates Mauve score between the generated and gold answers.
 
         Args:
             generated_answers (list[str]): Generated answers.
-            gold_answers (list[str]): Gold standard answers.
+            reference_answers (list[str]): Gold standard answers.
 
         Returns:
             float: Mauve score between the answers.
         """
         # Generate embeddings
         p_features = embedding_model.encode(generated_answers)
-        q_features = embedding_model.encode(answers)
+        q_features = embedding_model.encode(reference_answers)
         score = mauve.compute_mauve(p_features=p_features, q_features=q_features)
 
         return score.mauve
