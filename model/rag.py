@@ -229,6 +229,7 @@ class RAG:
 
         answers = result['correct_answers']
         answers = answers + [result['best_answer']]*2
+        answers = [answer for answer in answers if answer]
 
         # Calculate F1 scores and similarities
         r1f1_scores = self._calculate_f1_score([result['generated_response']], answers, n='1')
@@ -312,6 +313,7 @@ class RAG:
             answer = results_df.loc[i, "correct_answers"]
             answers += answer
             answers = answers + [results_df.loc[i, 'best_answer']]*2
+            answers = [answer for answer in answers if answer]
             generated_answers += [str(results_df.loc[i,'generated_response'])]*len(answer)
         
         mauve_scores = self._calculate_mauve(embedding_model, generated_answers, answers)
@@ -330,6 +332,7 @@ class RAG:
             float: Mauve score between the answers.
         """
         # Generate embeddings
+        print(generated_answers)
         p_features = embedding_model.encode(generated_answers)
         q_features = embedding_model.encode(reference_answers)
         score = mauve.compute_mauve(p_features=p_features, q_features=q_features)

@@ -150,7 +150,7 @@ class IndexBuilder:
         """
         doc_info = self._prepare_docs()
         self.doc_info = pd.DataFrame(doc_info)
-        embeddings = self.embedding_model.encode(self.doc_info['doc'].tolist(), show_progress_bar=True)
+        embeddings = self.embedding_model.encode(self.doc_info['text'].tolist(), show_progress_bar=True)
         self.doc_info['embedding'] = embeddings.tolist()
 
         return np.array(embeddings)
@@ -176,6 +176,8 @@ class IndexBuilder:
                 doc_fr = self.documents_fr[org_doc_id]
                 doc_de = self.documents_de[org_doc_id]
                 doc = np.random.choice([doc_en, doc_fr, doc_de])
+                if not doc:
+                   doc = doc_en 
             else:
                 doc = self.documents[org_doc_id]
             
@@ -184,8 +186,7 @@ class IndexBuilder:
 
             # Prepend same document to its chunks and store document/chunk details
             for doc in docs:
-                text = doc
-                doc_dict = {"text": text, "org_doc_id": org_doc_id, "doc": doc}
+                doc_dict = {"text": doc, "org_doc_id": org_doc_id}
                 if self.icl_kb:
                     doc_dict['correct_answer'] = self.best_answers[org_doc_id]
                     doc_dict['incorrect_answer'] = self.incorrect_answers[org_doc_id][0]
@@ -203,6 +204,7 @@ class IndexBuilder:
         Returns:
             List[str]: List of text chunks.
         """
+        
         tokens = text.split() if self.tokenizer is None else self.tokenizer.encode(text, add_special_tokens=False)
         chunks = []
 

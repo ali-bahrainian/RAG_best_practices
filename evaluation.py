@@ -95,11 +95,11 @@ if __name__ == "__main__":
         test_data = mmlu['test'].to_pandas().groupby('subject').head(32).drop(columns='subject').reset_index(drop=True)
         def extract_answers(row):
             best_answer = row['choices'][row['answer']]
-            incorrect_answers = np.array([choice for i, choice in enumerate(row['choices']) if i != row['answer']])
+            incorrect_answers = [choice for i, choice in enumerate(row['choices']) if i != row['answer']]
             return pd.Series([best_answer, incorrect_answers], index=['best_answer', 'incorrect_answers'])
         test_data[['best_answer', 'incorrect_answers']] = test_data.apply(extract_answers, axis=1)
         test_data = test_data.drop(columns=['choices', 'answer'])
-        test_data['correct_answers'] = [np.array([]) for _ in range(len(test_data))]
+        test_data['correct_answers'] = [[] for _ in range(len(test_data))]
         test_data = test_data[['question', 'best_answer', 'correct_answers', 'incorrect_answers']]
 
     
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     # Evaluate all configurations
     for configs, run in zip([configs_run1, configs_run2],[1, 2]):
         time = datetime.now().strftime("%m-%d_%H-%M")
-        results_dir = f'{args.output_dir}/run{run}_{time}'
+        results_dir = f'{args.output_dir}/{args.dataset}/run{run}_{time}'
 
         os.makedirs(results_dir, exist_ok=True)
         index_configs = [c['index_builder'] for c in configs.values()]

@@ -120,7 +120,8 @@ configs_run2 = {
     },
     "MultiLingo+": {
     "index_builder": {
-        "multi_lingo": True
+        "multi_lingo": True,
+        # "icl_kb": False
     },    
     "ralm": {
         "top_k_docs": 2,
