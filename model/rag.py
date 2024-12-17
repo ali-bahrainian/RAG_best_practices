@@ -227,8 +227,7 @@ class RAG:
         rLf1_scores_dict = {}
         similarities_dict = {}
 
-        answers = result['correct_answers']
-        answers = answers + [result['best_answer']]*2
+        answers = result['correct_answers'] + result['best_answer']*2
         answers = [answer for answer in answers if answer]
 
         # Calculate F1 scores and similarities
@@ -309,15 +308,21 @@ class RAG:
         """
         answers  = []
         generated_answers = []
+        indexes = []
         for i in range(len(results_df)):
             answer = results_df.loc[i, "correct_answers"]
-            answers += answer
-            answers = answers + [results_df.loc[i, 'best_answer']]*2
+            answers += answer + results_df.loc[i, 'best_answer']*2
             answers = [answer for answer in answers if answer]
-            generated_answers += [str(results_df.loc[i,'generated_response'])]*len(answer)
+            if len(answers) == 0:
+                print(results_df.loc[i])
+            generated_answers += [str(results_df.loc[i,'generated_response'])]*len(answers)
+            indexes += [i]*len(answers)
         
         mauve_scores = self._calculate_mauve(embedding_model, generated_answers, answers)
-        results_df['mauve'] = mauve_scores
+        # compute the mean Mauve score for each question using indexes
+        mauve_df = pd.DataFrame({'mauve': mauve_scores, 'index': indexes})
+        mauve_df = mauve_df.groupby('index').mean()
+        results_df['mauve'] = mauve_df['mauve'].tolist()
         return results_df
     
     def _calculate_mauve(self, embedding_model, generated_answers, reference_answers):
@@ -332,7 +337,6 @@ class RAG:
             float: Mauve score between the answers.
         """
         # Generate embeddings
-        print(generated_answers)
         p_features = embedding_model.encode(generated_answers)
         q_features = embedding_model.encode(reference_answers)
         score = mauve.compute_mauve(p_features=p_features, q_features=q_features)

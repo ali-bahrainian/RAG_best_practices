@@ -87,20 +87,26 @@ if __name__ == "__main__":
         test_data['correct_answers'] = test_data['correct_answers'].apply(lambda x: [i for i in x if i]) # Remove empty strings from correct answers
         test_data['incorrect_answers'] = test_data['incorrect_answers'].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else [x])
         test_data['incorrect_answers'] = test_data['incorrect_answers'].apply(lambda x: [i for i in x if i])
+        test_data['best_answer'] = test_data['best_answer'].apply(lambda x: [x] if x else [])
         test_data = test_data[(test_data['correct_answers'].apply(len) > 1) & (test_data['incorrect_answers'].apply(len) > 1)]
         test_data = test_data.reset_index(drop=True)
 
     elif args.dataset == 'mmlu':
         mmlu = load_dataset("cais/mmlu", "all")
         test_data = mmlu['test'].to_pandas().groupby('subject').head(32).drop(columns='subject').reset_index(drop=True)
+        test_data['aswer'] = test_data['answer'].astype(int)
+        test_data['choices'] = test_data['choices'].apply(lambda x: x.tolist())
         def extract_answers(row):
-            best_answer = row['choices'][row['answer']]
+            best_answer = [choice for i, choice in enumerate(row['choices']) if i == row['answer']]
+            assert len(best_answer) > 0
             incorrect_answers = [choice for i, choice in enumerate(row['choices']) if i != row['answer']]
             return pd.Series([best_answer, incorrect_answers], index=['best_answer', 'incorrect_answers'])
         test_data[['best_answer', 'incorrect_answers']] = test_data.apply(extract_answers, axis=1)
         test_data = test_data.drop(columns=['choices', 'answer'])
         test_data['correct_answers'] = [[] for _ in range(len(test_data))]
         test_data = test_data[['question', 'best_answer', 'correct_answers', 'incorrect_answers']]
+        test_data = test_data.reset_index(drop=True)
+        print(f"Loaded {len(test_data)} questions from MMLU dataset")
 
     
     knowledge_base = pd.read_pickle('resources/articles_l3.pkl')
