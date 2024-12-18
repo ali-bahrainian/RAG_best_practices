@@ -58,9 +58,9 @@ class RAG:
                 system_prompt = self.system_prompt + " considering these examples\n" if self.system_prompt else ""
                 repeat_prompt = self.system_prompt + "\n" if self.repeat_system_prompt else ""
                 if self.icl_kb_incorrect:
-                    docs_str = "\n".join("- Question:" + question + ", Correct Answer:" + correct + "\n- Question:" + question + ", Incorrect Answer:" + incorrect for question, correct, incorrect  in zip(docs_text, docs_correct_answer, docs_incorrect_answer)) + "\n---\n"
+                    docs_str = "\n".join("- Question:" + question + ", Correct Answer:" + str(correct) + "\n- Question:" + question + ", Incorrect Answer:" + str(incorrect) for question, correct, incorrect  in zip(docs_text, docs_correct_answer, docs_incorrect_answer)) + "\n---\n"
                 else:
-                    docs_str = "\n".join("- Question:" + question + ", Correct Answer:" + correct for question, correct  in zip(docs_text, docs_correct_answer)) + "\n---\n"
+                    docs_str = "\n".join("- Question:" + question + ", Correct Answer:" + str(correct) for question, correct  in zip(docs_text, docs_correct_answer)) + "\n---\n"
                 rag_prompt =  f"{system_prompt}{docs_str}{repeat_prompt}Question:{query}, Correct Answer:"
         else:
             system_prompt = self.system_prompt + "\n" if self.system_prompt else ""

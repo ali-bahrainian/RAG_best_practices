@@ -183,7 +183,7 @@ class Retriever:
             
             # Focus on the most relevant sentences from the retrieved documents
             if focus:
-                docs = self.doc_info.loc[indices]["doc"].tolist()
+                docs = self.doc_info.loc[indices]["text"].tolist()
                 self.index_sents = self.build_index(docs)   
                 similarities, indices = self.index_sents.search(np.array([query_embedding]), focus)
                 indices, similarities = indices[0], similarities[0]

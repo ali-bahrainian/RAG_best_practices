@@ -97,13 +97,13 @@ if __name__ == "__main__":
         test_data['aswer'] = test_data['answer'].astype(int)
         test_data['choices'] = test_data['choices'].apply(lambda x: x.tolist())
         def extract_answers(row):
-            best_answer = [choice for i, choice in enumerate(row['choices']) if i == row['answer']]
-            assert len(best_answer) > 0
+            correct_answers = [choice for i, choice in enumerate(row['choices']) if i == row['answer']]
+            assert len(correct_answers) > 0
             incorrect_answers = [choice for i, choice in enumerate(row['choices']) if i != row['answer']]
-            return pd.Series([best_answer, incorrect_answers], index=['best_answer', 'incorrect_answers'])
-        test_data[['best_answer', 'incorrect_answers']] = test_data.apply(extract_answers, axis=1)
+            return pd.Series([correct_answers, incorrect_answers], index=['correct_answers', 'incorrect_answers'])
+        test_data[['correct_answers', 'incorrect_answers']] = test_data.apply(extract_answers, axis=1)
         test_data = test_data.drop(columns=['choices', 'answer'])
-        test_data['correct_answers'] = [[] for _ in range(len(test_data))]
+        test_data['best_answer'] = [[] for _ in range(len(test_data))]
         test_data = test_data[['question', 'best_answer', 'correct_answers', 'incorrect_answers']]
         test_data = test_data.reset_index(drop=True)
         print(f"Loaded {len(test_data)} questions from MMLU dataset")
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     all_results = {}
 
     # Evaluate all configurations
-    for configs, run in zip([configs_run1, configs_run2],[1, 2]):
+    for configs, run in zip([configs_run2],[2]):
         time = datetime.now().strftime("%m-%d_%H-%M")
         results_dir = f'{args.output_dir}/{args.dataset}/run{run}_{time}'
 
@@ -161,4 +161,4 @@ if __name__ == "__main__":
         del index_pre
                 
         with open(f"{results_dir}/eval_results_all.json", "w") as outfile: 
-            json.dump(results, outfile)   
+            json.dump(all_results, outfile)   
