@@ -7,8 +7,6 @@ from transformers import AutoConfig
 from src.build_model import OffloadConfig, QuantConfig, build_model
 from hqq.core.quantize import BaseQuantizeConfig
 
-HF_TOKEN = '' # Token for Hugging Face API access
-
 class ModelLoader:
     """
     Responsible for loading a specific language model and its associated tokenizer.
@@ -51,7 +49,6 @@ class ModelLoader:
             # Prepare kwargs for model loading
             model_kwargs = {
                 'pretrained_model_name_or_path': self.model_name,
-                'token': HF_TOKEN,
                 'quantization_config': bnb_config,
             }
         
@@ -59,47 +56,53 @@ class ModelLoader:
                 model_kwargs['device_map'] = 'auto'
         
             self.model = model_loader_function.from_pretrained(**model_kwargs)
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=HF_TOKEN, padding_side='left')
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, padding_side='left')
             
         else:
             print('MoE\n---')
             model_name = self.model_name
-            quantized_model_name = "lavawolfiee/Mixtral-8x7B-Instruct-v0.1-offloading-demo"
-            state_path = "Mixtral-8x7B-Instruct-v0.1-offloading-demo"
-
-            config = AutoConfig.from_pretrained(quantized_model_name)
-
-            offload_per_layer = 4
-            num_experts = config.num_local_experts
-
-            offload_config = OffloadConfig(
-            main_size=config.num_hidden_layers * (num_experts - offload_per_layer),
-            offload_size=config.num_hidden_layers * offload_per_layer,
-            buffer_size=4,
-            offload_per_layer=offload_per_layer,
-            )
-        
-            attn_config = BaseQuantizeConfig(
-                nbits=4,
-                group_size=64,
-                quant_zero=True,
-                quant_scale=True,
-            )
-            attn_config["scale_quant_params"]["group_size"] = 256
-            
-            ffn_config = BaseQuantizeConfig(
-                nbits=2,
-                group_size=16,
-                quant_zero=True,
-                quant_scale=True,
-            )
-            quant_config = QuantConfig(ffn_config=ffn_config, attn_config=attn_config)
-            
-            model = build_model(
-                device=torch.device("cuda:0"),
-                quant_config=quant_config,
-                offload_config=offload_config,
-                state_path=state_path
-            )
+            # quantized_model_name = "lavawolfiee/Mixtral-8x7B-Instruct-v0.1-offloading-demo"
+            # state_path = "Mixtral-8x7B-Instruct-v0.1-offloading-demo"
+            model = AutoModelForCausalLM.from_pretrained(
+                        model_name,
+                        device_map="auto",  
+                        offload_folder="offload",  # Folder for offloaded layers if using CPU
+                        # load_in_8bit=True,  
+                    )
             self.model = model
-            self.tokenizer= AutoTokenizer.from_pretrained(self.model_name, token=HF_TOKEN, padding_side='left')
+            # config = AutoConfig.from_pretrained(quantized_model_name)
+
+            # offload_per_layer = 4
+            # num_experts = config.num_local_experts
+
+            # offload_config = OffloadConfig(
+            # main_size=config.num_hidden_layers * (num_experts - offload_per_layer),
+            # offload_size=config.num_hidden_layers * offload_per_layer,
+            # buffer_size=4,
+            # offload_per_layer=offload_per_layer,
+            # )
+        
+            # attn_config = BaseQuantizeConfig(
+            #     nbits=4,
+            #     group_size=64,
+            #     quant_zero=True,
+            #     quant_scale=True,
+            # )
+            # attn_config["scale_quant_params"]["group_size"] = 256
+            
+            # ffn_config = BaseQuantizeConfig(
+            #     nbits=2,
+            #     group_size=16,
+            #     quant_zero=True,
+            #     quant_scale=True,
+            # )
+            # quant_config = QuantConfig(ffn_config=ffn_config, attn_config=attn_config)
+            
+            # model = build_model(
+            #     device=torch.device("cuda:0"),
+            #     quant_config=quant_config,
+            #     offload_config=offload_config,
+            #     state_path=state_path
+            # )
+            # self.model = model
+            self.tokenizer= AutoTokenizer.from_pretrained(self.model_name, padding_side='left')

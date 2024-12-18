@@ -113,7 +113,7 @@ if __name__ == "__main__":
     all_results = {}
 
     # Evaluate all configurations
-    for configs, run in zip([configs_run2],[2]):
+    for configs, run in zip([configs_run1],[1]):
         time = datetime.now().strftime("%m-%d_%H-%M")
         results_dir = f'{args.output_dir}/{args.dataset}/run{run}_{time}'
 
