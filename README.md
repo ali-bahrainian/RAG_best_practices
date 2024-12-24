@@ -68,15 +68,11 @@ base_config = {
    ```bash
    git clone https://github.com/dvmazur/mixtral-offloading.git
    ```
-2. **Download the Mixtral-8x7B Mode**:
-    ```bash
-    huggingface-cli download lavawolfiee/Mixtral-8x7B-Instruct-v0.1-offloading-demo --quiet --local-dir Mixtral-8x7B-Instruct-v0.1-offloading-demo
-    ```
-3. **Install Dependencies**:
+2. **Install Dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
-4. **Download Knowledge Sources**:
+3. **Download Knowledge Sources**:
 
     Download the necessary knowledge base files from the provided [Google Drive link](https://drive.google.com/drive/folders/1_-2PHI0-Wz1VjnW5Yvy5Ne9C7mMWk1nf?usp=drive_link).
     Unzip the downloaded files into the `resources/` directory.
@@ -87,8 +83,7 @@ Your final directory structure should look like this:
 ```
 RAG_best_practices/ 
 │
-│ ├── mixtral-offloading/                                # Mixtral model offloading library
-│ ├── Mixtral-8x7B-Instruct-v0.1-offloading-demo/        # Mixtral-8x7B model offloading library
+│ ├── mixtral-offloading/        # Mixtral model offloading library
 │
 ├── model/                       # Core RAG implementation 
 │ ├── index_builder.py           # Builds document index 

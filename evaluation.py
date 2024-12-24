@@ -16,7 +16,7 @@ from model.model_loader import ModelLoader
 from model.rag import RAG
 from model.retriever import Retriever
 
-from config import configs_run1, configs_run2 
+from config import configs_run1, configs_run2
 
 # Argument parsing
 def parse_args():
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     all_results = {}
 
     # Evaluate all configurations
-    for configs, run in zip([configs_run1],[1]):
+    for configs, run in zip([configs_run1, configs_run2],[1, 2]):
         time = datetime.now().strftime("%m-%d_%H-%M")
         results_dir = f'{args.output_dir}/{args.dataset}/run{run}_{time}'
 

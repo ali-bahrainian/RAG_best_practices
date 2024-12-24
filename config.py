@@ -52,13 +52,13 @@ def generate_configurations(base_config, configs):
 
 
 configs_run1 = {
-    # "Base": {
-    # },
-    # "HelpV2": {
-    # "ralm": {
-    #     "system_prompt": "You are an accurate and reliable question-answering bot. Please provide a precise and correct response to the question following"
-    #     }
-    # },
+    "Base": {
+    },
+    "HelpV2": {
+    "ralm": {
+        "system_prompt": "You are an accurate and reliable question-answering bot. Please provide a precise and correct response to the question following"
+        }
+    },
     "Instruct45B": {
     "generation_model_name": "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "seq2seq_model_name": "google/flan-t5-small",
@@ -67,45 +67,11 @@ configs_run1 = {
         "batch_size": 4,
         "repeat_system_prompt": True,
         }
-    },
-    # "2Documents_XL": {
-    # "index_builder": {
-    #     "chunk_size": 192
-    # },  
-    # "ralm": {
-    #     "top_k_docs": 2
-    #     }
-    # },
-    # "1K_5Doc": {
-    # "ralm": {
-    #     "top_k_docs": 5,
-    #     }
-    # },
-    # "10K_5Doc": {
-    # "ralm": {
-    #     "top_k_docs": 5,
-    #     }
-    # }
+    }
 }
 
 
 configs_run2 = {
-    "Stride5": {
-    "seq2seq_model_name": "google/flan-t5-small",
-    "ralm": {
-        "top_k_docs": 2,
-        "repeat_system_prompt": True,
-        "stride": 5
-        }
-    },
-    "ExpandL": {
-    "ralm": {
-        "top_k_docs": 3,
-        "repeat_system_prompt": True,
-        "expand_query": True,
-        "top_k_titles": 7
-        }
-    },
     "ICL1D+": {
     "index_builder": {
         "chunk_size":200,
@@ -116,17 +82,6 @@ configs_run2 = {
         "top_k_docs": 1,
         "icl_kb": True,
         "icl_kb_incorrect": True
-        }
-    },
-    "MultiLingo+": {
-    "index_builder": {
-        "multi_lingo": True,
-        # "icl_kb": False
-    },    
-    "ralm": {
-        "top_k_docs": 2,
-        "repeat_system_prompt": True,
-        "system_prompt": "You are a truthful expert question-answering bot and should correctly and concisely answer the following question in english"
         }
     },
     "Focus80_Doc80": {
