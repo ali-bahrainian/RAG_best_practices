@@ -14,7 +14,6 @@ The RAG framework combines:
   <img src="rag-diagram.png" alt="RAG Framework Overview" width="800">
 </p>
 
----
 ## Configuration
 This project provides a flexible configuration system to customize the RAG system. Key settings include:
 ```bash
@@ -62,7 +61,6 @@ base_config = {
 
 ```
 
----
 ## Installation
 1. **Clone mixtral-offloading repository**:
    ```bash
@@ -76,7 +74,7 @@ base_config = {
 
     Download the necessary knowledge base files from the provided [Google Drive link](https://drive.google.com/drive/folders/1_-2PHI0-Wz1VjnW5Yvy5Ne9C7mMWk1nf?usp=drive_link).
     Unzip the downloaded files into the `resources/` directory.
----
+
 
 ## Project Structure
 Your final directory structure should look like this:
@@ -101,7 +99,6 @@ RAG_best_practices/
 └── README.md 
 ```
 
----
 
 ## Run RAG System 
 To evaluate our RAG system with different configurations, simply run:
@@ -109,7 +106,7 @@ To evaluate our RAG system with different configurations, simply run:
 ```bash
 python evaluation.py
 ```
----
+
 
 ## Citation
 If you find our paper or code helpful, please cite our paper:
