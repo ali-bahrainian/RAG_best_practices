@@ -64,7 +64,7 @@ def initialize_rag(knowledge_base, config, model_loader_generation, model_loader
 
     
 def mean_metrics_item(evaluation):
-    metrics = ['r1f1','r2f1','rLf1', 'similarity', 'mauve']
+    metrics = ['r1f1','r2f1','rLf1', 'similarity']
         
     # Initialize the dictionary to store computed means
     computed_means = {}
@@ -139,7 +139,7 @@ if __name__ == "__main__":
             
             ralm, index_pre = initialize_rag(kb, config, model_loader_generation, model_loader_seq2seq, index_pre, same_index, first_run)
             print(f"Evaluating model: {name}")
-            evaluations[name] = ralm.evaluate(test_data)
+            evaluations[name], mauve_score = ralm.evaluate(test_data)
         
             del ralm
             del model_loader_generation
@@ -154,6 +154,7 @@ if __name__ == "__main__":
                 json.dump(configs[name], f, indent=4)
         
             results = mean_metrics_item(evaluations[name])
+            results['mauve'] = mauve_score
 
             with open(f"{results_dir}/eval_results_{name}.json", "w") as outfile: 
                 json.dump(results, outfile)   

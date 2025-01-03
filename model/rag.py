@@ -88,9 +88,9 @@ class RAG:
         # Evaluate generation
         results_generation = self._evaluate_generation(test_batches_generation)
         results_df = self._compute_evaluation_metrics(test_data, results_generation)
-        results_df = self._compute_evaluation_mauve(self.retriever.embedding_model, results_df)
+        mauve_score = self._compute_evaluation_mauve(self.retriever.embedding_model, results_df)
         # Combine and format results
-        return results_df
+        return results_df, mauve_score
 
 
     def _evaluate_generation(self, test_batches):
@@ -308,7 +308,6 @@ class RAG:
         """
         answers  = []
         generated_answers = []
-        indexes = []
         for i in range(len(results_df)):
             answer = results_df.loc[i, "correct_answers"]
             answers += answer + results_df.loc[i, 'best_answer']*2
@@ -316,14 +315,10 @@ class RAG:
             if len(answers) == 0:
                 print(results_df.loc[i])
             generated_answers += [str(results_df.loc[i,'generated_response'])]*len(answers)
-            indexes += [i]*len(answers)
         
         mauve_scores = self._calculate_mauve(embedding_model, generated_answers, answers)
-        # compute the mean Mauve score for each question using indexes
-        mauve_df = pd.DataFrame({'mauve': mauve_scores, 'index': indexes})
-        mauve_df = mauve_df.groupby('index').mean()
-        results_df['mauve'] = mauve_df['mauve'].tolist()
-        return results_df
+
+        return mauve_scores
     
     def _calculate_mauve(self, embedding_model, generated_answers, reference_answers):
         """
