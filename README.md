@@ -1,6 +1,6 @@
 # RAG Best Practices
 
-This repository is the official implementation of the paper [Enhancing Retrieval-Augmented Generation: A Study of Best Practices](https://github.com/ali-bahrainian/RAG_best_practices)
+This repository is the official implementation of the paper [Enhancing Retrieval-Augmented Generation: A Study of Best Practices](https://arxiv.org/abs/2501.07391)
 
 ## Overview
 This repository implements a **Retrieval-Augmented Generation (RAG)** system to assess the impact of various RAG components and configurations individually. The framework expands user queries, retrieves relevant contexts, and generates responces using a Large Language Model (LLM).
@@ -111,5 +111,11 @@ python evaluation.py
 ## Citation
 If you find our paper or code helpful, please cite our paper:
 ```
-@inproceedings{title={Enhancing Retrieval-Augmented Generation: A Study of Best Practices}}
+@article{li2025enhancing,
+  title={Enhancing Retrieval-Augmented Generation: A Study of Best Practices},
+  author={Li, Siran and Stenzel, Linus and Eickhoff, Carsten and Bahrainian, Seyed Ali},
+  journal={arXiv preprint arXiv:2501.07391},
+  year={2025}
+}
+
 ```
