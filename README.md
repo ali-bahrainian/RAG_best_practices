@@ -111,11 +111,19 @@ python evaluation.py
 ## Citation
 If you find our paper or code helpful, please cite our paper:
 ```
-@article{li2025enhancing,
-  title={Enhancing Retrieval-Augmented Generation: A Study of Best Practices},
-  author={Li, Siran and Stenzel, Linus and Eickhoff, Carsten and Bahrainian, Seyed Ali},
-  journal={arXiv preprint arXiv:2501.07391},
-  year={2025}
+@inproceedings{li-etal-2025-enhancing-retrieval,
+    title = "Enhancing Retrieval-Augmented Generation: A Study of Best Practices",
+    author = "Li, Siran  and
+      Stenzel, Linus  and
+      Eickhoff, Carsten  and
+      Bahrainian, Seyed Ali",
+    booktitle = "Proceedings of the 31st International Conference on Computational Linguistics",
+    month = jan,
+    year = "2025",
+    address = "Abu Dhabi, UAE",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.coling-main.449/",
+    pages = "6705--6717"
 }
 
 ```
